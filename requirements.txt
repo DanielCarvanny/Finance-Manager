@@ -1,0 +1,20 @@
+# Banco de Dados
+sqlalchemy>=2.0
+
+# Manipulação de Dados
+pandas>=2.0
+
+# Interface Gráfica
+customtkinter>=5.2
+
+# Gráficos
+matplotlib>=3.7
+
+# Empacotamento (apenas na Fase 9)
+pyinstaller>=6.0
+
+# Testes
+pytest>=7.0
+
+# Criptografia
+cryptography>=41.0
