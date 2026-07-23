@@ -8,7 +8,7 @@ from tkinter import filedialog, messagebox
 from ui.components.tabela import TabelaMovimentacoes
 from ui.components.lixeira import JanelaLixeira
 from services.importador import importar_extrato_completo
-from services.movimentacao_serivce import (
+from services.movimentacao_service import (
     ArquivamentoEstornoError,
     arquivar_movimentacoes,
     atualizar_categoria,

@@ -46,7 +46,7 @@ finance-manager/
 │   │   ├── classificador.py  # Classificação por palavras-chave
 │   │   ├── analisador.py     # Cálculos de resumos e gráficos
 │   │   ├── resumo_service.py # Geração/atualização do resumo mensal
-│   │   └── movimentacao_serivce.py  # Atualização de categoria
+│   │   └── movimentacao_service.py  # Atualização de categoria
 │   │
 │   ├── ui/
 │   │   ├── app.py            # Janela principal (App)
