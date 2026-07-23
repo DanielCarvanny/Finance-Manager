@@ -20,7 +20,7 @@ config = context.config
 
 # Interpreta o arquivo de configuração de log do alembic.ini
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # Define o target_metadata para suporte a autogenerate das migrações
 target_metadata = Base.metadata

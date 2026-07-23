@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from application.services.analisador_service import calcular_resumo_mensal
+from application.analisador_service import calcular_resumo_mensal
 from domain.models.resumo_mensal import ResumoMensal
 from utils.logger import logger
 

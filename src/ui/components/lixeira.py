@@ -9,6 +9,8 @@ class JanelaLixeira(ctk.CTkToplevel):
         self.title("Lixeira de movimentações")
         self.geometry("900x560")
         self.minsize(700, 400)
+        self.transient(master)
+        self.protocol("WM_DELETE_WINDOW", self.ao_fechar)
         self.ao_restaurar = ao_restaurar
         self.selecionadas = set()
 
@@ -34,6 +36,11 @@ class JanelaLixeira(ctk.CTkToplevel):
         self.botao_restaurar.grid(row=2, column=0, padx=20, pady=(0, 20), sticky="e")
 
         self.atualizar_dados(movimentacoes)
+
+    def ao_fechar(self):
+        """Libera a interação da janela principal ao fechar a lixeira."""
+        self.grab_release()
+        self.destroy()
 
     def atualizar_dados(self, movimentacoes):
         for widget in self.lista.winfo_children():

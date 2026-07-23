@@ -184,7 +184,7 @@ class App (ctk.CTk):
         self.atualizar_dashboard_apos_reclassificacao()
 
     def abrir_lixeira(self):
-        """Abre uma janela com as movimentações disponíveis para restauração."""
+        """Abre a lixeira em primeiro plano sobre a janela principal."""
         with get_db() as db:
             movimentacoes = db.query(Movimentacao).options(
                 joinedload(Movimentacao.categoria)
@@ -192,7 +192,13 @@ class App (ctk.CTk):
                 Movimentacao.excluida.is_(True)
             ).order_by(Movimentacao.excluida_em.desc()).all()
 
-        JanelaLixeira(self, movimentacoes, self.restaurar_da_lixeira)
+        if hasattr(self, "janela_lixeira") and self.janela_lixeira.winfo_exists():
+            self.janela_lixeira.focus_force()
+            return
+
+        self.janela_lixeira = JanelaLixeira(self, movimentacoes, self.restaurar_da_lixeira)
+        self.janela_lixeira.grab_set()
+        self.janela_lixeira.focus_force()
 
     def restaurar_da_lixeira(self, ids):
         try:

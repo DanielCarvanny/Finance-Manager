@@ -7,7 +7,7 @@ import re
 from datetime import datetime, date
 from typing import List, Dict
 from sqlalchemy.orm import Session
-from application.services.classificador_service import classificar_todas_movimentacoes
+from application.classificador_service import classificar_todas_movimentacoes
 from utils.logger import logger
 
 
