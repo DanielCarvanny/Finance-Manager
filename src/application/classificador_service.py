@@ -1,6 +1,6 @@
-from models.movimentacao import Movimentacao
-from models.palavra_chave import PalavraChave
-from models.categoria import Categoria
+from domain.models.movimentacao import Movimentacao
+from domain.models.palavra_chave import PalavraChave
+from domain.models.categoria import Categoria
 from sqlalchemy.orm import Session, joinedload
 
 

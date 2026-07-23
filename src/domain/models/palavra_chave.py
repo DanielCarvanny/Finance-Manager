@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import CheckConstraint
-from models.base import Base
+from domain.models.base import Base
 
 class PalavraChave(Base):
     __tablename__ = 'palavra_chave'  # Nome da tabela no banco de dados

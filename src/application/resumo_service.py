@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from services.analisador import calcular_resumo_mensal
-from models.resumo_mensal import ResumoMensal
+from application.services.analisador_service import calcular_resumo_mensal
+from domain.models.resumo_mensal import ResumoMensal
 from utils.logger import logger
 
 def gerar_resumo(session: Session, novo_ano: int, novo_mes: int):

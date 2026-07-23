@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 caminho_src = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, caminho_src)
 
-from services.classificador import classificar_movimentacao
+from application.classificador_service import classificar_movimentacao
 
 
 # ─────────────────────────────────────────────

@@ -6,10 +6,10 @@ from datetime import date
 caminho_src = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, caminho_src)
 
-from database.conexao import inicializar_banco_de_dados, get_db
-from services.importador import importar_extrato_completo
-from models.importacao import Importacao
-from models.movimentacao import Movimentacao
+from infrastructure.database.conexao import inicializar_banco_de_dados, get_db
+from application.importacao.importacao_service import importar_extrato_completo
+from domain.models.importacao import Importacao
+from domain.models.movimentacao import Movimentacao
 
 def testar_integracao_banco():
     print("1. Preparando o Banco de Dados (Tabelas e Seeds)...")

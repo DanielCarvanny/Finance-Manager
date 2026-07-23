@@ -2,7 +2,7 @@ from models.movimentacao import Movimentacao
 from sqlalchemy.orm import Session
 from utils.logger import logger
 from datetime import datetime
-from services.resumo_service import sincronizar_resumo
+from application.services.resumo_service import sincronizar_resumo
 
 
 class ArquivamentoEstornoError(ValueError):

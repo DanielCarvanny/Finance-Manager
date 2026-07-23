@@ -1,5 +1,5 @@
-from models.palavra_chave import PalavraChave
-from models.categoria import Categoria
+from domain.models.palavra_chave import PalavraChave
+from domain.models.categoria import Categoria
 from utils.logger import logger
 
 PALAVRAS_CHAVE_INICIAIS = [
@@ -91,10 +91,35 @@ def popular_categorias(session):
     session.commit()
 
 
-def executar_populacao_inicial(session):
+def executar_populacao_inicial(session, op: str):
     """
     Função para executar a população inicial do banco de dados.
     """
-    popular_categorias(session)
-    popular_palavras_chave(session)
+    if op == "cat":
+        popular_categorias(session)
+    elif op == "chave":
+        popular_palavras_chave(session)
+    elif op == "ambas":
+        popular_categorias(session)
+        popular_palavras_chave(session)
+
     logger.info("Categorias e palavras-chave verificadas e populadas.")
+
+def verificar_populacao_inicial(session):
+    """
+    Verifica de forma eficiente se categorias e palavras-chave já foram inicializadas.
+    """
+    tem_categorias = session.query(Categoria.id).first() is not None
+    tem_palavras_chave = session.query(PalavraChave.id).first() is not None
+
+    if not tem_categorias and not tem_palavras_chave:
+        executar_populacao_inicial(session, "ambas")
+        logger.info("População inicial de categorias e palavras-chave executada.")
+    elif not tem_categorias:
+        executar_populacao_inicial(session, "cat")
+        logger.info("População inicial de categorias executada.")
+    elif not tem_palavras_chave:
+        executar_populacao_inicial(session, "chave")
+        logger.info("População inicial de palavras-chave executada.")
+    else:
+        logger.info("População inicial de banco de dados já verificada e em dia.")

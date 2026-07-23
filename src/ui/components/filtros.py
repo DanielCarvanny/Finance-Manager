@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from models.movimentacao import Movimentacao
+from domain.models.movimentacao import Movimentacao
 from sqlalchemy import extract, distinct
 from datetime import date
 

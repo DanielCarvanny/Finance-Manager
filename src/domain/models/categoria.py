@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.orm import relationship
-from models.base import Base
+from domain.models.base import Base
 
 class Categoria(Base):
     __tablename__ =  'categoria' # Nome da tabela no banco de dados

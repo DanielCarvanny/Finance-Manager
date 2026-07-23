@@ -9,7 +9,7 @@ import pytest
 caminho_src = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, caminho_src)
 
-from services.importador import (
+from application.importacao.importacao_service import (
     validar_arquivo,
     extrair_periodo,
     processar_csv_extrato,

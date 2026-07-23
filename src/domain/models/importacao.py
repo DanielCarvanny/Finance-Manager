@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Index, Date
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import CheckConstraint
-from models.base import Base
+from domain.models.base import Base
 
 class Importacao(Base):
     __tablename__ = 'importacao'  # Nome da tabela no banco de dados

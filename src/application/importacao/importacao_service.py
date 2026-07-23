@@ -1,13 +1,13 @@
-from models.importacao import Importacao
-from models.movimentacao import Movimentacao
-from models.categoria import Categoria
+from domain.models.importacao import Importacao
+from domain.models.movimentacao import Movimentacao
+from domain.models.categoria import Categoria
 import pandas as pd
 import os
 import re
 from datetime import datetime, date
 from typing import List, Dict
 from sqlalchemy.orm import Session
-from services.classificador import classificar_todas_movimentacoes
+from application.services.classificador_service import classificar_todas_movimentacoes
 from utils.logger import logger
 
 

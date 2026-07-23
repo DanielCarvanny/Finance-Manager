@@ -6,12 +6,12 @@ from datetime import date, datetime
 caminho_src = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, caminho_src)
 
-from database.conexao import inicializar_banco_de_dados, get_db
-from models.categoria import Categoria
-from models.palavra_chave import PalavraChave
-from models.importacao import Importacao
-from models.movimentacao import Movimentacao
-from models.resumo_mensal import ResumoMensal
+from infrastructure.database.conexao import inicializar_banco_de_dados, get_db
+from domain.models.categoria import Categoria
+from domain.models.palavra_chave import PalavraChave
+from domain.models.importacao import Importacao
+from domain.models.movimentacao import Movimentacao
+from domain.models.resumo_mensal import ResumoMensal
 
 if __name__ == "__main__":
     print("1. Iniciando o banco de dados e as seeds...")

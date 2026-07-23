@@ -2,11 +2,12 @@ import os
 import sys
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
-from models import base, categoria, importacao, movimentacao, palavra_chave, resumo_mensal
-from database import seed
+from domain.models import base, categoria, importacao, movimentacao, palavra_chave
+from domain.models import resumo_mensal
+from infrastructure.database import seed
 from contextlib import contextmanager
 from utils.logger import logger
-from utils.security import descriptografar_banco, criptografar_banco
+from infrastructure.security.security import descriptografar_banco, criptografar_banco
 
 # ---------------------------------------------------------------------------
 # Caminhos de dados — sempre em %APPDATA%\FinanceManager\ para garantir
@@ -55,8 +56,10 @@ def inicializar_banco_de_dados():
     db = SessionLocal()
 
     try:
-        seed.executar_populacao_inicial(db)
+        seed.verificar_populacao_inicial(db)
         logger.info("Seed inicial concluída.")
+    except Exception as e:
+        logger.error(f"Erro ao verificar população inicial do banco: {e}", exc_info=True)
     finally:
         db.close()
 

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, Numeric, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.schema import CheckConstraint
-from models.base import Base
+from domain.models.base import Base
 
 class ResumoMensal(Base): 
     __tablename__ = 'resumo_mensal'  # Nome da tabela no banco de dados

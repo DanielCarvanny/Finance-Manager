@@ -7,24 +7,24 @@ from utils.logger import logger
 from tkinter import filedialog, messagebox
 from ui.components.tabela import TabelaMovimentacoes
 from ui.components.lixeira import JanelaLixeira
-from services.importador import importar_extrato_completo
-from services.movimentacao_service import (
+from application.importacao.importacao_service import importar_extrato_completo
+from application.movimentacao_service import (
     ArquivamentoEstornoError,
     arquivar_movimentacoes,
     atualizar_categoria,
     restaurar_movimentacoes,
 )
-from database.conexao import get_db, salvar_e_criptografar_banco
-from models.movimentacao import Movimentacao
+from infrastructure.database.conexao import get_db, salvar_e_criptografar_banco
+from domain.models.movimentacao import Movimentacao
 from sqlalchemy.orm import joinedload
-from models.categoria import Categoria
+from domain.models.categoria import Categoria
 from ui.components.filtros import FiltrosDashboard
 from ui.components.cards import PainelResumo
 from ui.components.graficos import GraficoPizza, GraficoBarras, GraficoLinha
-from services.resumo_service import obter_resumo
-from services.analisador import percentual_por_categoria, evolucao_mensal, receitas_vs_despesas_mensal
+from application.resumo_service import obter_resumo
+from application.analisador_service import percentual_por_categoria, evolucao_mensal, receitas_vs_despesas_mensal
 from sqlalchemy import extract
-from models.categoria import Categoria
+from domain.models.categoria import Categoria
 
 # Configurações globais de design
 caminho_tema = os.path.join(os.path.dirname(__file__), "theme.json")

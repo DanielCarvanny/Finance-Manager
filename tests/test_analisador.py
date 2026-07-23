@@ -10,11 +10,11 @@ sys.path.insert(0, caminho_src)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from models.base import Base
-from models.categoria import Categoria
-from models.movimentacao import Movimentacao
-from models.importacao import Importacao
-from services.analisador import (
+from domain.models.base import Base
+from domain.models.categoria import Categoria
+from domain.models.movimentacao import Movimentacao
+from domain.models.importacao import Importacao
+from application.analisador_service import (
     calcular_resumo_mensal,
     percentual_por_categoria,
     evolucao_mensal,

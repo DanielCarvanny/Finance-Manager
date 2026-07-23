@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
-from models.movimentacao import Movimentacao
-from models.resumo_mensal import ResumoMensal
-from models.categoria import Categoria
+from domain.models.movimentacao import Movimentacao
+from domain.models.resumo_mensal import ResumoMensal
+from domain.models.categoria import Categoria
 import calendar
 
 def filtrar_movimentacoes_ativas(query):

@@ -7,8 +7,8 @@ caminho_src = os.path.abspath(os.path.join(os.path.dirname(__file__), 'src'))
 if caminho_src not in sys.path:
     sys.path.insert(0, caminho_src)
 
-from database.conexao import inicializar_banco_de_dados, get_db
-from database.seed import executar_populacao_inicial
+from infrastructure.database.conexao import inicializar_banco_de_dados, get_db
+from infrastructure.database.seed import verificar_populacao_inicial
 from utils.logger import logger
 
 
@@ -18,15 +18,13 @@ def main():
         
         logger.info("Conectando e verificando Banco de Dados...")
         inicializar_banco_de_dados()
-        
-        with get_db() as db:
-            executar_populacao_inicial(db)
+
         logger.info("✅ Banco de dados e sementes inicializados com sucesso.")
 
             
         logger.info("Abrindo Interface Gráfica...")
         # Importamos a janela só AGORA, depois que o banco já está pronto!
-        from src.ui.app import App
+        from ui.views.app import App
         
         # Instancia a janela e diz para ela ficar aberta (mainloop)
         aplicativo = App()
