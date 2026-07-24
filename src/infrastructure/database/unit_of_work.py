@@ -1,9 +1,11 @@
+from sqlalchemy.orm import Session
 from infrastructure.database.conexao import SessionLocal
 from infrastructure.repositories.movimentacao_repo import MovimentacaoRepository
 from infrastructure.repositories.categoria_repo import CategoriaRepository
 from infrastructure.repositories.resumo_repo import ResumoMensalRepository
 from infrastructure.repositories.palavra_chave_repo import PalavraChaveRepository
 from utils.logger import logger
+from typing import Optional
 
 class UnitOfWork:
     """
@@ -12,7 +14,7 @@ class UnitOfWork:
     """
     def __init__(self, session_factory=SessionLocal):
         self._factory = session_factory
-        self._session = None
+        self._session: Optional[Session] = None
 
     def __enter__(self):
         # 1. Abre a sessão com o banco de dados
@@ -35,7 +37,14 @@ class UnitOfWork:
         """Desfaz todas as alterações realizadas se houver erro."""
         if self._session:
             self._session.rollback()
-
+            
+    @property
+    def session(self) -> Session:
+        """Expõe a sessão ativa de forma controlada. Lança erro se chamado fora de um bloco 'with'."""
+        if self._session is None:
+            raise RuntimeError("UnitOfWork não está ativo. Use-o dentro de um bloco 'with UnitOfWork() as uow'.")
+        return self._session
+    
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Executado automaticamente ao sair do bloco 'with'.
