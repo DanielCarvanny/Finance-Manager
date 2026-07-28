@@ -19,7 +19,10 @@ class ResumoMensalRepository(BaseRepository[ResumoMensal]):
         """
         Salva um novo resumo mensal se não existir, ou atualiza o existente no banco.
         """
-        existente = self.obter_por_periodo(int(resumo.ano), int(resumo.mes))
+        existente = self._session.query(ResumoMensal).filter(
+            ResumoMensal.ano == resumo.ano,
+            ResumoMensal.mes == resumo.mes,
+        ).first()
 
         if existente:
             # Atualiza os valores do registro existente

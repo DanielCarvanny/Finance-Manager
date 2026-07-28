@@ -4,7 +4,7 @@ from domain.models.importacao import Importacao
 from domain.models.movimentacao import Movimentacao
 from application.importacao.strategies.base import EstrategiaImportacao
 from infrastructure.database.unit_of_work import UnitOfWork
-from application.classificador_service import classificar_todas_movimentacoes
+from application.classificador_service import ClassificadorService
 from utils.logger import logger
 
 class ImportacaoService:
@@ -32,6 +32,8 @@ class ImportacaoService:
         Função principal invocada pela UI / ViewModel.
         Recebe qualquer estratégia (Inter, Nubank, OFX) e o caminho do arquivo.
         """
+        classificador = ClassificadorService()
+        
         try:
             logger.info(f"Iniciando importação do extrato: {os.path.basename(caminho_arquivo)}")
 
@@ -86,7 +88,7 @@ class ImportacaoService:
                     uow.movimentacoes.salvar_lote(novas_mov)
                     
                 # Executa a classificação automática de categorias por palavras-chave
-                classificar_todas_movimentacoes(uow.session)
+                classificador.classificar_todas_movimentacoes(uow)
                 
                 # Confirma toda a transação bancária (Tudo ou Nada)
                 uow.commit()
