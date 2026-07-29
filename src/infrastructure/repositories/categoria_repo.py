@@ -11,3 +11,6 @@ class CategoriaRepository(BaseRepository[Categoria]):
 
     def listar_todas(self) -> List[Categoria]:
         return self.get_all()
+    
+    def buscar_por_id(self, id: int)-> Optional[Categoria]:
+            return self.get_by_id(id)
