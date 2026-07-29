@@ -1,8 +1,9 @@
 from infrastructure.repositories.base import BaseRepository
 from domain.models.movimentacao import Movimentacao
 from domain.models.categoria import Categoria
-from sqlalchemy import extract, func
+from sqlalchemy import extract, func, distinct
 from typing import Optional
+import datetime
 
 class MovimentacaoRepository(BaseRepository[Movimentacao]):
     def __init__(self, session):
@@ -208,3 +209,18 @@ class MovimentacaoRepository(BaseRepository[Movimentacao]):
         ).group_by(extract('month', Movimentacao.data_lancamento))
 
         return query.all()
+    
+    def obter_anos_disponiveis(self) -> list[int]:
+        """Retorna os anos distintos das movimentações ativas."""
+        resultados = self._session.query(
+            distinct(extract('year', Movimentacao.data_lancamento))
+        ).filter(
+            Movimentacao.excluida.is_(False)
+        ).order_by(
+            extract('year', Movimentacao.data_lancamento).desc()
+        ).all()
+
+        # Converte de [(2026.0,), (2025.0,)] para ["2026", "2025"]
+        anos = [int(r[0]) for r in resultados if r[0] is not None]
+
+        return sorted(anos, reverse=True) or [datetime.date.today().year]
