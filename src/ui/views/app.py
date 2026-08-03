@@ -17,7 +17,7 @@ from domain.exceptions import ArquivamentoEstornoError
 
 
 # Configurações globais de design
-caminho_tema = os.path.join(os.path.dirname(__file__), "theme.json")
+caminho_tema = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "theme.json"))
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme(caminho_tema)
 
