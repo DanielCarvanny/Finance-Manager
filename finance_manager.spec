@@ -12,7 +12,10 @@ a = Analysis(
         # Theme da interface
         ('src/ui/theme.json', 'ui/views'),
         # Scripts de migração do Alembic
-        ('alembic', 'alembic'),
+        (
+            'src/infrastructure/database/migrations',
+            'src/infrastructure/database/migrations'
+        ),
         ('alembic.ini', '.'),
         # Pasta completa src (para imports internos funcionarem)
         ('src', 'src'),

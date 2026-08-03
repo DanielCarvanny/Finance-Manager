@@ -118,6 +118,15 @@ python -m pytest tests/ --cov=src --cov-report=term-missing
 
 ---
 
+## 📦 Empacotamento e Distribuição
+
+O aplicativo pode ser empacotado como um executável autônomo para Windows (`.exe`) sem necessidade de instalação prévia do Python.
+
+- **PyInstaller**: Utilizado para empacotar o ambiente Python, código-fonte e dependências em um executável standalone.
+- **Inno Setup**: Utilizado para gerar o instalador com assistente de instalação (`FinanceManager_Setup_v1.0.exe`).
+
+---
+
 ## 🔒 Segurança e Criptografia dos Dados
 
 - **Criptografia Fernet (AES-256)**: Ao fechar o aplicativo pelo botão "X", o arquivo do banco `finance_manager.db` é automaticamente encriptado como `finance_manager.db.enc`.
@@ -127,3 +136,11 @@ python -m pytest tests/ --cov=src --cov-report=term-missing
   ```
 
 > ⚠️ **Importante**: Nunca compartilhe ou exclua a sua `secret.key`. Sem ela, o banco encriptado não poderá ser lido.
+
+---
+
+## 📜 Créditos e Agradecimentos
+
+- **Inno Setup**: O instalador do sistema foi construído utilizando a ferramenta **Inno Setup** (Copyright © 1997-2026 Jordan Russell / Martijn Laan). Agradecemos aos criadores pelo excelente software de instalação open-source.
+- **CustomTkinter**: Interface gráfica moderna desenvolvida com a biblioteca CustomTkinter de Tom Schimansky.
+
