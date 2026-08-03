@@ -38,6 +38,16 @@
 - Elaboração de `arquitetura_v2.md`, `design_patterns.md`, `migracoes_alembic.md`.
 - Atualização de `estrutura_projeto.md`, `roadmap.md`, `Visao_Geral.md` e `README.md`.
 
+### Etapa 7: Ajustes Finais e Correções ✅
+- Correção da atualização em tempo real dos gráficos na reclassificação.
+- Proteção das categorias alteradas manualmente contra sobrescrita na reimportação.
+- Validação e sincronização da classificação por palavras-chave com `flush()`.
+
+### Etapa 8: Empacotamento, Distribuição & Release v1.0.0 ✅
+- Empacotamento executável standalone via PyInstaller (`.spec`).
+- Criação do instalador executável `.exe` via Inno Setup (`installer.iss`).
+- **Release oficial Version 1.0.0 divulgada e disponível no GitHub!**
+
 ---
 
 ## Evolução Futura (Roadmap v2.1+)
