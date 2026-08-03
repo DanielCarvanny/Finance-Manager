@@ -10,9 +10,12 @@ a = Analysis(
     binaries=[],
     datas=[
         # Theme da interface
-        ('src/ui/views/theme.json', 'ui/views'),
+        ('src/ui/theme.json', 'ui/views'),
         # Scripts de migração do Alembic
-        ('alembic', 'alembic'),
+        (
+            'src/infrastructure/database/migrations',
+            'src/infrastructure/database/migrations'
+        ),
         ('alembic.ini', '.'),
         # Pasta completa src (para imports internos funcionarem)
         ('src', 'src'),

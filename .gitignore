@@ -14,11 +14,13 @@ __pycache__/
 *$py.class
 *.so
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .coverage
 htmlcov/
 
 # ==========================================
-# BANCO DE DADOS LOCAL E SEGREDO
+# BANCO DE DADOS LOCAL E SEGREDO (SEGURANÇA)
 # ==========================================
 *.db
 *.db.enc
@@ -40,10 +42,11 @@ logs/
 *.log
 
 # ==========================================
-# PYINSTALLER E DUMP DE BUILD
+# PYINSTALLER E ARTEFATOS DE BUILD
 # ==========================================
 build/
 dist/
+installer_output/
 
 # ==========================================
 # CONFIGURAÇÕES DE IDE E FERRAMENTAS
@@ -55,3 +58,14 @@ dist/
 .agents/
 
 tests/relatorio_execucao_testes.md
+
+# ==========================================
+# JUPYTER E NOTEBOOKS
+# ==========================================
+.ipynb_checkpoints/
+
+# ==========================================
+# SISTEMA OPERACIONAL
+# ==========================================
+.DS_Store
+Thumbs.db

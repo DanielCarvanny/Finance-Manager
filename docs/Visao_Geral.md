@@ -45,3 +45,11 @@ O **Finance Manager v2.0** é um aplicativo desktop de gestão financeira pessoa
 ## Público-alvo e Modo de Operação
 - **Uso pessoal e local**: Execução local sem dependência de servidores web externos.
 - **Segurança de dados**: O banco de dados fica criptografado localmente no disco do usuário.
+
+---
+
+## Ferramentas de Distribuição e Agradecimentos
+
+- **Inno Setup**: O instalador executável do projeto é gerado utilizando a ferramenta **Inno Setup** (Copyright © 1997-2026 Jordan Russell / Martijn Laan). Agradecemos aos autores por disponibilizarem esta excelente solução de empacotamento.
+- **PyInstaller**: Utilizado para compilação e criação dos binários standalone da aplicação.
+
