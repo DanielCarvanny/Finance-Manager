@@ -1,160 +1,115 @@
-# Estrutura do Projeto — Sistema de Organização Financeira
-## Arquitetura em Camadas
+# Estrutura do Projeto — Finance Manager v2.0
 
-O sistema segue o padrão de arquitetura em camadas, onde cada camada tem uma responsabilidade bem definida:
+## Arquitetura em 4 Camadas (Clean / Layered Architecture)
 
-┌─────────────────────────────────────────┐
-│              UI (CustomTkinter)         │  ← Apresentação: telas, gráficos, eventos
-├─────────────────────────────────────────┤
-│           Controller (main.py)          │  ← Orquestração: liga UI aos serviços
-├─────────────────────────────────────────┤
-│              Service (services/)        │  ← Lógica de negócio: importar, classificar, analisar
-├─────────────────────────────────────────┤
-│           Repository (models/)          │  ← Acesso a dados: SQLAlchemy ORM
-├─────────────────────────────────────────┤
-│              SQLite (database/)         │  ← Persistência: banco de dados local
-└─────────────────────────────────────────┘
+O sistema segue uma arquitetura em 4 camadas bem delimitadas, implementando o padrão **MVVM** na camada de apresentação e **Repository + Unit of Work** na persistência:
 
-### Responsabilidade de Cada Camada
-
-| Camada | O que faz | O que NÃO faz |
-|--------|-----------|---------------|
-| **UI** | Exibe dados, captura eventos do usuário, desenha gráficos | Não acessa banco direto, não calcula indicadores |
-| **Controller** | Inicia a aplicação, conecta eventos da UI aos serviços | Não contém regras de negócio |
-| **Service** | Valida CSV, classifica movimentações, calcula estatísticas | Não acessa banco direto, não renderiza telas |
-| **Repository** | Consulta, insere, atualiza e deleta no banco via SQLAlchemy | Não contém regras de negócio |
-| **SQLite** | Armazena e recupera dados fisicamente | Não toma decisões |
+```
+┌──────────────────────────────────────────────────────────┐
+│              UI / APRESENTAÇÃO (MVVM)                    │
+│   src/ui/views/app.py                                    │
+│   src/ui/viewmodels/ (Dashboard, Importação, Lixeira)    │
+│   src/ui/components/ (Cards, Tabela, Gráficos, Filtros)  │
+├──────────────────────────────────────────────────────────┤
+│              APLICAÇÃO / SERVIÇOS                        │
+│   src/application/ (Importacao, Classificador, etc.)     │
+├──────────────────────────────────────────────────────────┤
+│              INFRAESTRUTURA                              │
+│   src/infrastructure/database/ (Conexão, UnitOfWork)    │
+│   src/infrastructure/repositories/ (Repositories)        │
+│   src/infrastructure/importacao/ (Parsers/Validators)  │
+├──────────────────────────────────────────────────────────┤
+│              DOMÍNIO                                     │
+│   src/domain/models/ (Movimentacao, Categoria, etc.)     │
+│   src/domain/exceptions.py (Exceções de Negócio)         │
+└──────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Estrutura de Pastas
-sistema_financeiro/
+## Árvore Completa de Diretórios do Repositório
+
+```
+finance-manager/
+├── alembic/                         # Versionamento de schema do banco de dados (Alembic)
+│   ├── versions/                    # Scripts de revisão/migração
+│   ├── env.py                       # Conexão do Alembic aos Models SQLAlchemy
+│   └── script.py.mako
+├── alembic.ini                      # Configuração do Alembic
 │
-├── venv/                          # Ambiente virtual Python (não versionado)
+├── main.py                          # Ponto de entrada da aplicação
+├── gerador_de_tema.py               # Utilitário para gerar o tema da UI (Dark Mode)
+├── requirements.txt                 # Dependências do projeto
 │
-├── src/                           # Código fonte principal
-│   ├── __init__.py
+├── src/                             # Código-fonte principal em 4 camadas
+│   ├── domain/                      # CAMADA 1: DOMÍNIO
+│   │   ├── models/                  # Entidades SQLAlchemy (Mapeamento ORM)
+│   │   │   ├── base.py
+│   │   │   ├── categoria.py
+│   │   │   ├── importacao.py
+│   │   │   ├── movimentacao.py
+│   │   │   ├── palavra_chave.py
+│   │   │   └── resumo_mensal.py
+│   │   └── exceptions.py            # Exceções desacopladas de regras de negócio
 │   │
-│   ├── models/                    # Camada Repository — Classes SQLAlchemy
-│   │   ├── __init__.py
-│   │   ├── base.py                # Base declarativa (DeclarativeBase)
-│   │   ├── importacao.py          # Tabela importacao
-│   │   ├── movimentacao.py        # Tabela movimentacao
-│   │   ├── categoria.py           # Tabela categoria
-│   │   ├── palavra_chave.py       # Tabela palavra_chave
-│   │   └── resumo_mensal.py       # Tabela resumo_mensal
+│   ├── infrastructure/              # CAMADA 2: INFRAESTRUTURA
+│   │   ├── database/                # Persistência e Transações
+│   │   │   ├── conexao.py           # Conexão SQLite, Fernet AES-256 e Alembic
+│   │   │   ├── unit_of_work.py      # Pattern Unit of Work (Context Manager)
+│   │   │   └── seed.py              # Carga inicial de dados
+│   │   ├── repositories/            # Pattern Repository (Acesso ao Banco)
+│   │   │   ├── base.py              # BaseRepository[T] Genérico
+│   │   │   ├── categoria_repo.py
+│   │   │   ├── movimentacao_repo.py
+│   │   │   ├── palavra_chave_repo.py
+│   │   │   └── resumo_repo.py
+│   │   └── importacao/              # Sub-módulos de Leitura de Extratos
+│   │       ├── parsers/             # Extratores de formato (CSVParser)
+│   │       ├── validators/          # Validações físicas e colunas (InterValidator)
+│   │       └── normalizers/         # Limpeza e parsing de valores (ExtratoNormalizer)
 │   │
-│   ├── database/                  # Configuração de conexão com o banco
-│   │   ├── __init__.py
-│   │   ├── conexao.py             # Engine, Session, create_all
-│   │   └── seed.py                # Dados iniciais (categorias e palavras-chave)
+│   ├── application/                 # CAMADA 3: APLICAÇÃO / SERVIÇOS
+│   │   ├── importacao/              # Orquestração de Importação (Strategy Pattern)
+│   │   │   ├── importacao_service.py
+│   │   │   └── strategies/          # Estratégias por banco (EstrategiaCSVInter)
+│   │   ├── classificador_service.py # Categorização automática por palavras-chave
+│   │   ├── analisador_service.py    # Cálculos e distribuições de gráficos
+│   │   ├── resumo_service.py        # Consolidação de resumos mensais
+│   │   └── movimentacao_service.py  # Gestão de lixeira, estornos e categorias
 │   │
-│   ├── services/                  # Camada Service — Lógica de negócio
-│   │   ├── __init__.py
-│   │   ├── importador.py          # Leitura e validação do CSV
-│   │   ├── classificador.py       # Categorização automática
-│   │   ├── analisador.py          # Cálculo de indicadores financeiros
-│   │   └── resumo_service.py      # Geração e consulta de resumos mensais
-│   │
-│   └── ui/                        # Camada UI — Interface gráfica
-│       ├── __init__.py
-│       ├── app.py                 # Janela principal (CustomTkinter)
-│       ├── components/
-│       │   ├── __init__.py
-│       │   ├── tabela.py          # Tabela de movimentações
-│       │   ├── graficos.py        # Gráficos com Matplotlib
-│       │   ├── filtros.py         # Dropdowns de período
-│       │   └── importacao_ui.py   # Tela de importação de CSV
-│       └── estilos.py             # Cores, fontes e temas
+│   └── ui/                          # CAMADA 4: APRESENTAÇÃO (MVVM)
+│       ├── views/
+│       │   └── app.py               # Janela Principal CustomTkinter
+│       ├── viewmodels/              # Camada ViewModel (Exposição de DTOs)
+│       │   ├── dashboard_view_model.py
+│       │   ├── importacao_view_model.py
+│       │   └── lixeira_view_model.py
+│       ├── components/              # Componentes de Interface
+│       │   ├── cards.py
+│       │   ├── filtros.py
+│       │   ├── graficos.py
+│       │   ├── lixeira.py
+│       │   └── tabela.py
+│       └── theme.json               # Tema visual Dark Mode
 │
-├── data/                          # Arquivos de extrato para teste
-│   └── extrato-exemplo.csv
-│
-├── docs/                          # Documentação do projeto
-│   ├── Modelagem/
-│   │   ├── Modelo_Dominio.md          # Entidades, atributos e relacionamentos
-│   │   └── Banco_Dados.md             # Documentação técnica das tabelas
-│   ├── Requisitos/
-│   │   ├── Dados_de_Entrada.md        
-│   │   ├── Escopo.md
-│   │   ├── Regras_Negocio.md
-│   │   ├── Requisitos_Funcionais.md
-│   │   └── Requisitos_Nao_Funcionais.md
-│   ├── estrutura_projeto.md       # Este documento
-│   ├── Visao_Geral.md
-│   └── roadmap.md                 # Roadmap de desenvolvimento
-│
-├── tests/                         # Testes automatizados (Fase 8)
-│   ├── __init__.py
-│   ├── test_importador.py
+├── tests/                           # Suíte de Testes Automatizados (pytest)
+│   ├── conftest.py                  # Fixtures globais SQLite em memória
+│   ├── test_movimentacao_repository.py
+│   ├── test_categoria_repository.py
 │   ├── test_classificador.py
-│   └── test_analisador.py
+│   ├── test_estrategia_csv_inter.py
+│   ├── test_dashboard_viewmodel.py
+│   ├── test_importacao_viewmodel.py
+│   └── test_lixeira_viewmodel.py
 │
-├── requirements.txt               # Dependências do projeto
-├── README.md                      # Documentação para GitHub
-├── main.py                    # Camada Controller — Ponto de entrada
-└── .gitignore                     # Arquivos ignorados pelo Gi
-
----
-
-## Dependências (requirements.txt)
-# Banco de Dados
-sqlalchemy>=2.0
-
-# Manipulação de Dados
-pandas>=2.0
-
-# Interface Gráfica
-customtkinter>=5.2
-
-# Gráficos
-matplotlib>=3.7
-
-# Empacotamento (apenas na Fase 9)
-pyinstaller>=6.
-
----
-
-## Fluxo de Dados
-
-### Importação de CS
-Arquivo CSV (data/)
-    ↓
-importador.py (lê e valida com Pandas)
-    ↓
-Lista de dicionários (dados validados)
-    ↓
-classificador.py (atribui categoria via PalavraChave)
-    ↓
-Objetos Movimentacao (models)
-    ↓
-conexao.py (sessão SQLAlchemy)
-    ↓
-SQLite (persistência)
-
-### Exibição no Dashboard
-SQLite
-    ↓
-analisador.py (consulta via SQLAlchemy)
-    ↓
-Dicionário de indicadores
-    ↓
-ui/graficos.py (Matplotlib)
-    ↓
-ui/app.py (CustomTkinter)
-    ↓
-Tela do usuário
-
----
-
-## Convenções de Código
-
-| Regra | Exemplo |
-|-------|---------|
-| Nomes de arquivos: snake_case | `palavra_chave.py` |
-| Nomes de classes: PascalCase | `class PalavraChave(Base):` |
-| Nomes de funções: snake_case | `def calcular_total():` |
-| Nomes de variáveis: snake_case | `total_receitas = 0` |
-| Constantes: UPPER_SNAKE_CASE | `CATEGORIAS_PADRAO = [...]` |
-| Docstrings em todas as funções | `"""Retorna o total de despesas do mês."""` |
-| Tipagem estática (type hints) | `def importar(caminho: str) -> list[dict]:` |
+├── docs/                            # Documentação Técnica do Projeto
+│   ├── arquitetura_v2.md            # Arquitetura em 4 camadas
+│   ├── design_patterns.md           # Padrões Repository, UoW, Strategy, MVVM
+│   ├── migracoes_alembic.md         # Guia do Alembic
+│   ├── estrutura_projeto.md         # Este arquivo
+│   ├── Visao_Geral.md               # Visão geral do sistema
+│   └── roadmap.md                   # Roadmap de desenvolvimento
+│
+└── logs/                            # Arquivos de Log da Aplicação
+    └── app.log
+```

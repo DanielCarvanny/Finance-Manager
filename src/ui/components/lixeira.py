@@ -9,6 +9,8 @@ class JanelaLixeira(ctk.CTkToplevel):
         self.title("Lixeira de movimentações")
         self.geometry("900x560")
         self.minsize(700, 400)
+        self.transient(master)
+        self.protocol("WM_DELETE_WINDOW", self.ao_fechar)
         self.ao_restaurar = ao_restaurar
         self.selecionadas = set()
 
@@ -35,6 +37,11 @@ class JanelaLixeira(ctk.CTkToplevel):
 
         self.atualizar_dados(movimentacoes)
 
+    def ao_fechar(self):
+        """Libera a interação da janela principal ao fechar a lixeira."""
+        self.grab_release()
+        self.destroy()
+
     def atualizar_dados(self, movimentacoes):
         for widget in self.lista.winfo_children():
             widget.destroy()
@@ -47,19 +54,24 @@ class JanelaLixeira(ctk.CTkToplevel):
             return
 
         for indice, mov in enumerate(movimentacoes):
-            data = mov.data_lancamento.strftime("%d/%m/%Y")
-            data_arquivamento = mov.excluida_em.strftime("%d/%m/%Y %H:%M") if mov.excluida_em else "—"
+            data_obj = mov["data_lancamento"]
+            data = data_obj.strftime("%d/%m/%Y") if hasattr(data_obj, "strftime") else str(data_obj)
+            
+            excl_obj = mov.get("excluida_em")
+            data_arquivamento = excl_obj.strftime("%d/%m/%Y %H:%M") if hasattr(excl_obj, "strftime") else (str(excl_obj) if excl_obj else "—")
+            
+            id_mov = mov["id"]
             checkbox = ctk.CTkCheckBox(
                 self.lista,
                 text="",
                 width=24,
-                command=lambda mov_id=mov.id: self.alternar_selecao(mov_id),
+                command=lambda mov_id=id_mov: self.alternar_selecao(mov_id),
             )
             checkbox.grid(row=indice, column=0, padx=(10, 4), pady=6)
             ctk.CTkLabel(self.lista, text=data, width=90).grid(row=indice, column=1, padx=5, pady=6)
             ctk.CTkLabel(
                 self.lista,
-                text=mov.descricao,
+                text=mov["descricao"],
                 anchor="w",
                 justify="left",
                 wraplength=420,

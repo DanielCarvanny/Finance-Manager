@@ -30,7 +30,7 @@ def gerar_tema():
     tema_completo["CTkProgressBar"]["progress_color"] = ["#635BFF", "#635BFF"]
 
     # 4. Salva o arquivo json perfeito de volta na nossa pasta UI!
-    pasta_ui = os.path.join(os.path.dirname(__file__), "src", "ui")
+    pasta_ui = os.path.dirname(os.path.abspath(__file__))
     caminho_arquivo = os.path.join(pasta_ui, "theme.json")
     
     with open(caminho_arquivo, 'w', encoding='utf-8') as f:

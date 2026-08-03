@@ -1,242 +1,129 @@
-# 📊 Finance Manager — InterFIN Local
+# 📊 Finance Manager — InterFIN Local (v2.0)
 
-> Gerenciador financeiro pessoal para análise de extratos bancários do Banco Inter.
-> Importa CSV, classifica automaticamente as movimentações por categoria e exibe um dashboard interativo com gráficos.
+> Gerenciador financeiro pessoal desktop construído em Python com **CustomTkinter**, **SQLAlchemy**, **Alembic** e **Matplotlib**.
+> Importa extratos bancários, categoriza movimentações automaticamente por regras de palavras-chave, gerencia lixeira com proteção de estornos e exibe um dashboard interativo.
 
 ---
 
 ## ✨ Funcionalidades
 
-- **Importação de Extrato CSV** — Lê e processa o arquivo CSV do Banco Inter com validação de estrutura e deduplicação automática
-- **Classificação Automática** — Categoriza as movimentações por palavras-chave (ex: "RESTAURANTE" → Alimentação, "UBER" → Transporte)
-- **Reclassificação Manual** — Altere a categoria de qualquer movimentação diretamente pela tabela na interface
-- **Dashboard Interativo** — Visualize suas finanças filtradas por Mês e Ano com:
-  - Cards de Resumo: Receitas, Despesas, Saldo e Gasto Médio Diário
-  - Donut Chart de Gastos por Categoria
-  - Gráfico de Barras: Receitas vs Despesas (visão anual)
-  - Gráfico de Linha: Evolução Mensal de Despesas
-- **Sistema de Logs** — Todas as ações são registradas em `logs/app.log`
+- 📥 **Importação Extensível (Strategy Pattern)** — Processa extratos bancários CSV com validação estrutural e deduplicação por assinatura única.
+- 🏷️ **Classificação Automática** — Categoriza lançamentos por palavras-chave (ex: *"RESTAURANTE"* $\rightarrow$ Alimentação, *"UBER"* $\rightarrow$ Transporte).
+- 🔄 **Reclassificação Manual** — Altere a categoria de qualquer lançamento diretamente na tabela com recálculo instantâneo dos indicadores.
+- 🗑️ **Sistema de Lixeira (Soft Delete)** — Arquive e restaure lançamentos com proteção que obriga a seleção conjunta de estornos vinculados.
+- 📊 **Dashboard Interativo** — Filtragem dinâmica por Mês e Ano:
+  - Cards de Resumo: Receitas, Despesas, Saldo do Período e Gasto Médio Diário.
+  - Gráfico Donut: Distribuição de Gastos por Categoria.
+  - Gráfico de Barras: Comparativo de Receitas vs Despesas (visão anual).
+  - Gráfico de Linha: Evolução Mensal de Gastos.
+- 🔒 **Criptografia Fernet (AES-256)** — Proteção do banco SQLite em repouso ao encerrar o aplicativo.
+- 🛠️ **Migrações Automáticas (Alembic)** — Versionamento de schema de banco integrado no startup do aplicativo.
 
 ---
 
-## 🏗️ Arquitetura
+## 🏗️ Arquitetura do Sistema (v2.0)
+
+O projeto adota uma **Arquitetura em 4 Camadas (Clean Architecture)** com o padrão **MVVM** na camada de apresentação:
 
 ```
 finance-manager/
+├── alembic/                         # Versionamento de schema de banco (Alembic)
+├── docs/                            # Documentação técnica do projeto
+│   ├── arquitetura_v2.md            # Arquitetura em 4 camadas
+│   ├── design_patterns.md           # Padrões Repository, Unit of Work, Strategy, MVVM
+│   ├── migracoes_alembic.md         # Guia técnico do Alembic
+│   ├── estrutura_projeto.md         # Árvore completa de diretórios
+│   ├── Visao_Geral.md               # Visão geral do sistema
+│   └── roadmap.md                   # Roadmap de desenvolvimento
 │
-├── main.py                   # Ponto de entrada da aplicação
-├── requirements.txt          # Dependências do projeto
-├── gerador_de_tema.py        # Gera o tema dark mode da UI
+├── main.py                          # Ponto de entrada da aplicação
+├── gerador_de_tema.py               # Utilitário para gerar o tema visual
+├── requirements.txt                 # Dependências do projeto
 │
 ├── src/
-│   ├── database/
-│   │   ├── conexao.py        # Engine SQLAlchemy + get_db() context manager
-│   │   └── seed.py           # Categorias e palavras-chave iniciais
+│   ├── domain/                      # CAMADA 1: DOMÍNIO
+│   │   ├── models/                  # Entidades SQLAlchemy (Movimentacao, Categoria, etc.)
+│   │   └── exceptions.py            # Exceções de negócio desacopladas
 │   │
-│   ├── models/               # Modelos SQLAlchemy (tabelas do banco)
-│   │   ├── base.py
-│   │   ├── categoria.py
-│   │   ├── importacao.py
-│   │   ├── movimentacao.py
-│   │   ├── palavra_chave.py
-│   │   └── resumo_mensal.py
+│   ├── infrastructure/              # CAMADA 2: INFRAESTRUTURA
+│   │   ├── database/                # Conexão SQLite, UnitOfWork e Seed
+│   │   ├── repositories/            # Repository Pattern (Queries centralizadas)
+│   │   └── importacao/              # Sub-módulos Parsers, Validators e Normalizers
 │   │
-│   ├── services/             # Regras de negócio
-│   │   ├── importador.py     # Leitura, validação e salvamento do CSV
-│   │   ├── classificador.py  # Classificação por palavras-chave
-│   │   ├── analisador.py     # Cálculos de resumos e gráficos
-│   │   ├── resumo_service.py # Geração/atualização do resumo mensal
-│   │   └── movimentacao_service.py  # Atualização de categoria
+│   ├── application/                 # CAMADA 3: APLICAÇÃO / SERVIÇOS
+│   │   ├── importacao/              # Strategy Pattern para Extratos (EstrategiaCSVInter)
+│   │   ├── classificador_service.py
+│   │   ├── analisador_service.py
+│   │   ├── resumo_service.py
+│   │   └── movimentacao_service.py
 │   │
-│   ├── ui/
-│   │   ├── app.py            # Janela principal (App)
-│   │   ├── theme.json        # Tema "Dark Mode Trader" (gerado pelo gerador_de_tema.py)
-│   │   └── components/
-│   │       ├── cards.py      # Cards de Resumo (Receitas, Despesas, Saldo)
-│   │       ├── filtros.py    # Dropdowns de Mês e Ano
-│   │       ├── graficos.py   # GraficoPizza, GraficoBarras, GraficoLinha
-│   │       └── tabela.py     # Tabela de Movimentações com dropdown de categoria
-│   │
-│   └── utils/
-│       └── logger.py         # Configuração do sistema de logs
+│   └── ui/                          # CAMADA 4: APRESENTAÇÃO (MVVM)
+│       ├── views/                   # Janelas CustomTkinter (app.py)
+│       ├── viewmodels/              # ViewModels DTO (Dashboard, Importação, Lixeira)
+│       └── components/              # Tabela, Cards, Gráficos, Filtros, Lixeira
 │
-├── tests/                    # Testes automatizados (pytest)
-│   ├── test_importador.py    # Testes de validação, normalização e extração do CSV
-│   ├── test_classificador.py # Testes de classificação por palavras-chave
-│   └── test_analisador.py    # Testes de cálculos financeiros (banco em memória)
-│
-└── logs/
-    └── app.log               # Log gerado automaticamente na primeira execução
+└── tests/                           # Suíte de Testes Automatizados (pytest)
+    ├── conftest.py                  # Fixtures SQLite em memória
+    ├── test_movimentacao_repository.py
+    ├── test_categoria_repository.py
+    ├── test_classificador.py
+    ├── test_estrategia_csv_inter.py
+    ├── test_dashboard_viewmodel.py
+    ├── test_importacao_viewmodel.py
+    └── test_lixeira_viewmodel.py
 ```
 
 ---
 
-## 🛠️ Pré-requisitos
+## 🛠️ Pré-requisitos e Instalação
 
 - **Python 3.10+**
-- As dependências listadas em `requirements.txt`
-
-```
-sqlalchemy>=2.0
-pandas>=2.0
-customtkinter>=5.2
-matplotlib>=3.7
-pytest>=7.0
-```
-
----
-
-## ⚙️ Instalação
-
-### 1. Clone o repositório
+- Instalação das dependências do `requirements.txt`:
 
 ```bash
+# 1. Clone o repositório
 git clone https://github.com/seu-usuario/finance-manager.git
 cd finance-manager
-```
 
-### 2. Crie e ative o ambiente virtual
-
-```bash
-# Criar
+# 2. Crie e ative o ambiente virtual
 python -m venv venv
-
-# Ativar (Windows)
+# Windows:
 venv\Scripts\activate
-
-# Ativar (Linux / macOS)
+# Linux/macOS:
 source venv/bin/activate
-```
 
-### 3. Instale as dependências
-
-```bash
+# 3. Instale as dependências
 pip install -r requirements.txt
-```
 
-### 4. Gere o tema da interface
-
-```bash
+# 4. Gere o tema visual (executado uma única vez)
 python gerador_de_tema.py
-```
 
-> Isso cria o arquivo `src/ui/theme.json` com o tema **Dark Mode Trader**. Este passo é necessário antes de rodar o app pela primeira vez.
-
-### 5. Execute o aplicativo
-
-```bash
+# 5. Execute a aplicação
 python main.py
 ```
 
-O banco de dados `finance_manager.db` e a pasta `logs/` serão criados automaticamente na primeira execução.
-
 ---
 
-## 📖 Como Usar
+## 🧪 Execução de Testes Automatizados
 
-1. **Abrir o app**: Execute `python main.py`. A janela abrirá maximizada.
-2. **Importar extrato**: Clique em **📥 Importar Extrato (CSV)** e selecione o arquivo CSV do Banco Inter.
-3. **Filtrar por período**: Use os dropdowns de **Mês** e **Ano** no canto superior direito para navegar entre períodos.
-4. **Reclassificar movimentações**: Na tabela, clique no dropdown da coluna **Categoria** de qualquer linha para alterar a classificação.
-5. **Verificar logs**: Abra `logs/app.log` para ver o histórico completo de ações do sistema.
-
----
-
-## 📄 Formato do CSV Esperado
-
-O sistema foi desenvolvido para o extrato CSV do **Banco Inter**. O arquivo deve seguir este formato:
-
-| Característica | Valor |
-|---|---|
-| Linhas de cabeçalho (ignoradas) | 5 (`skiprows=5`) |
-| Encoding | UTF-8 (fallback automático para latin1) |
-| Separador de milhar | `.` (ponto) |
-| Separador decimal | `,` (vírgula) |
-| Formato de data | `DD/MM/AAAA` |
-
-**Colunas obrigatórias** (linha 6 em diante):
-
-| Coluna | Tipo | Exemplo |
-|---|---|---|
-| `Data Lançamento` | Data (DD/MM/AAAA) | `15/06/2026` |
-| `Descrição` | Texto | `RESTAURANTE DA MARIA` |
-| `Valor` | Numérico (R$) | `-35,50` |
-| `Saldo` | Numérico (R$) | `4.964,50` |
-
----
-
-## 🧪 Executar Testes
+A suíte de testes utiliza banco SQLite isolado em memória (`sqlite:///:memory:`) e mocks de serviços para testar todas as camadas do sistema:
 
 ```bash
-# Rodar todos os testes automatizados
-pytest tests/test_importador.py tests/test_classificador.py tests/test_analisador.py -v
-```
+# Executar todos os testes com saída detalhada
+python -m pytest tests/ -v --tb=short
 
-**Descrição dos arquivos de teste:**
-
-| Arquivo | O que testa |
-|---|---|
-| `test_importador.py` | Validação de arquivo, estrutura do CSV, normalização de dados e extração de transações |
-| `test_classificador.py` | Correspondência de palavras-chave, case-insensitive, filtro por tipo (receita/despesa/ambos) |
-| `test_analisador.py` | Cálculos de receitas, despesas, saldo, gasto médio diário, percentuais por categoria e evolução mensal |
-
-> Os testes de `test_classificador.py` usam **mocks em memória** (sem banco de dados).
-> Os testes de `test_analisador.py` usam **banco SQLite em memória** (`sqlite:///:memory:`) — isolados e sem efeito no banco real.
-
----
-
-## 📝 Sistema de Logs
-
-Todos os eventos do sistema são registrados automaticamente em `logs/app.log`:
-
-| Nível | Quando é usado |
-|---|---|
-| `INFO` | Inicialização do banco, importação bem-sucedida, reclassificação de categoria, encerramento do app |
-| `WARNING` | Movimentações ignoradas por duplicidade, fallback de encoding latin1 |
-| `ERROR` | Falhas críticas na importação, erros de UI, exceções globais |
-
-**Exemplo de log:**
-
-```
-[2026-07-20 14:30:15] [INFO]    [main.py:17]        - 🚀 Inicializando o Finance Manager...
-[2026-07-20 14:30:16] [INFO]    [conexao.py:25]     - Banco de dados SQLite inicializado com sucesso.
-[2026-07-20 14:30:22] [INFO]    [app.py:117]        - Usuário selecionou o arquivo para importação: junho.csv
-[2026-07-20 14:30:23] [INFO]    [importador.py:292] - Iniciando importação do extrato: junho.csv
-[2026-07-20 14:30:23] [INFO]    [importador.py:316] - 13 novas movimentações importadas com sucesso do arquivo 'junho.csv'.
-[2026-07-20 14:30:23] [WARNING] [importador.py:318] - 2 movimentações ignoradas por duplicidade.
-[2026-07-20 14:31:05] [INFO]    [app.py:180]        - Aplicativo encerrado pelo usuário via botão fechar.
-[2026-07-20 14:31:05] [INFO]    [conexao.py:52]     - Banco de dados salvo e criptografado com sucesso.
+# Executar medição de cobertura de código
+python -m pytest tests/ --cov=src --cov-report=term-missing
 ```
 
 ---
 
-## 🔐 Segurança e Privacidade dos Dados
+## 🔒 Segurança e Criptografia dos Dados
 
-O Finance Manager foi projetado com foco na proteção dos seus dados financeiros pessoais.
-
-### Criptografia do Banco de Dados
-
-O banco de dados é protegido com **criptografia AES-256 (Fernet)**:
-
-- Durante o uso do aplicativo, o banco fica temporariamente como `finance_manager.db` na pasta do programa
-- Ao **fechar o aplicativo**, o banco é automaticamente criptografado em `finance_manager.db.enc` e a versão sem criptografia é removida do disco
-- A chave de descriptografia é gerada automaticamente e salva em:
+- **Criptografia Fernet (AES-256)**: Ao fechar o aplicativo pelo botão "X", o arquivo do banco `finance_manager.db` é automaticamente encriptado como `finance_manager.db.enc`.
+- A chave de descriptografia é gerada no primeiro uso em:
   ```
   %APPDATA%\FinanceManager\secret.key
   ```
 
-> **⚠️ Atenção:** Nunca compartilhe o arquivo `secret.key`. Sem ele, é impossível acessar o banco de dados.
-
-### Recomendações de Instalação
-
-- ✅ Instale em uma pasta local, como `C:\Programas\FinanceManager\`
-- ❌ **Evite** instalar em pastas sincronizadas com nuvem (Google Drive, OneDrive, Dropbox)
-  - O arquivo `finance_manager.db.enc` (criptografado) seria enviado para os servidores dessas plataformas
-  - O arquivo `secret.key` em `%APPDATA%` **não** é sincronizado automaticamente pelo Windows — nunca o envie manualmente
-- ✅ O arquivo de log `logs/app.log` **não registra caminhos completos** do seu computador, apenas os nomes dos arquivos importados
-
----
-
-## 📜 Licença
-
-Projeto pessoal para fins de estudo e uso próprio.
+> ⚠️ **Importante**: Nunca compartilhe ou exclua a sua `secret.key`. Sem ela, o banco encriptado não poderá ser lido.

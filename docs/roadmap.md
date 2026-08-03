@@ -1,186 +1,55 @@
-# Roadmap — Sistema de Organização Financeira
+# Roadmap — Finance Manager
 
-## Fase 1 — Descoberta (Análise)
+## Status do Projeto
 
-### 1.1 — Definição do Escopo ✅
-- Objetivo: Importar extratos, classificar, analisar e visualizar finanças
-- Limitações: Apenas Banco Inter, uso local, usuário único
-- Funcionalidades: 5 principais (Importação, Processamento, Classificação, Análise, Visualização)
-
-### 1.2 — Análise do Extrato (Banco Inter)
-- Data (Date, Obrigatório)
-- Descrição (String, Obrigatório)
-- Valor (Decimal, Obrigatório)
-- Saldo (Decimal, Obrigatório)
-- Período do Extrato (extraído do arquivo)
-
-### 1.3 — Regras de Negócio ✅
-
-#### Regras Financeiras
-- PIX recebido é receita
-- PIX enviado é despesa
-- Estorno deve ser associado à movimentação original
-- Transferências entre contas próprias não contam como gasto (futuro)
-
-#### Regras de Categorização
-- Categorias obrigatórias: Alimentação, Transporte, Lazer, Moradia, Saúde, Investimentos, Sem categoria
-- Categorização por palavras-chave na descrição
-- Movimentação sem correspondência recebe "Sem categoria"
-- Usuário pode alterar categoria manualmente (persistente)
-
-#### Regras de Dados
-- Movimentação não pode ser duplicada (mesma data + descrição + valor)
-- Toda movimentação deve ter categoria
-- Valor não pode ser nulo ou zero
-- Data deve ser válida
-- Saldo deve ser numérico
-- Categoria não pode ser excluída se tiver movimentações vinculadas
-- Permitir múltiplas importações preservando histórico
-
-#### Regras de Análise
-- Gasto total do mês (somatório de todos os valores)
-- Gasto médio diário do período
-- Total por categoria com identificação de maior/menor gasto
-- Evolução mensal dos gastos no ano
-- Saldo do período
-- Percentual de gastos e recebimentos por categoria
-
-#### Regras de Interface
-- Dropdown com meses/anos para filtrar análises
-- Gráficos atualizados conforme filtro selecionado
-- Visualização de movimentações em tabela
+- **Versão 1.0 (Legada)**: ✅ Concluída (Monólito Funcional)
+- **Versão 2.0 (Atual)**: ✅ **100% Refatorada & Documentada** (Arquitetura em 4 Camadas, Repositórios, Unit of Work, Strategy Pattern, MVVM, Alembic)
 
 ---
 
-## Fase 2 — Modelagem
+## Histórico de Etapas da Refatoração v2.0
 
-### 2.1 — Modelagem do Domínio ✅
-Entidades definidas:
-- Extrato (Importacao)
-- Movimentacao
-- Categoria
-- PalavraChave
-- ResumoMensal
+### Etapa 0: Housekeeping & Preparação ✅
+- Organização do repositório, criação do ambiente virtual e estruturação inicial.
 
-Atributos, tipos e relacionamentos documentados.
-Ver documentação completa em: docs/Modelo_Dominio.md
+### Etapa 1: Versionamento com Alembic ✅
+- Configuração do Alembic para migrações de schema de banco de dados.
+- Integração programática em `conexao.py` para automação no startup.
 
-### 2.2 — Banco de Dados ✅
-DER e documentação técnica concluídos:
-- 5 tabelas com colunas, tipos, constraints e índices
-- Mapeamento Domínio → SQL → SQLAlchemy
-- Índices de performance e unicidade
-- Dados iniciais (seed) para categorias e palavras-chave
+### Etapa 2: Repository Pattern & Unit of Work ✅
+- Implementação de `BaseRepository[T]` e repositórios concretos (`MovimentacaoRepository`, `CategoriaRepository`, etc.).
+- Implementação do `UnitOfWork` como Context Manager para controle transacional atômico.
 
-Ver documentação completa em: docs/Banco_Dados.md
+### Etapa 3: Strategy Pattern & Refatoração dos Serviços ✅
+- Decomposição do módulo de importação em `parsers/`, `validators/` e `normalizers/`.
+- Criação da interface `EstrategiaImportacao` e implementação de `EstrategiaCSVInter`.
+- Refatoração dos serviços (`ClassificadorService`, `AnalisadorService`, `ResumoService`, `MovimentacaoService`).
 
-### 2.3 — Arquitetura do Sistema ✅
-Camadas definidas:
-- UI (CustomTkinter) — Apresentação
-- Controller — Orquestração da interface
-- Service — Lógica de negócio (importação, classificação, análise)
-- Repository/DAO — Acesso a dados (SQLAlchemy)
-- SQLite — Persistência
+### Etapa 4: Camada ViewModel & Desacoplamento da UI ✅
+- Criação das ViewModels (`DashboardViewModel`, `ImportacaoViewModel`, `LixeiraViewModel`).
+- Remoção de todas as instâncias de `get_db()` e queries SQLAlchemy de dentro dos componentes visuais.
+- Comunicação View $\longleftrightarrow$ ViewModel via DTOs/Dicionários simples.
 
-Tecnologias por camada:
-- UI: CustomTkinter, Matplotlib
-- Service: Pandas (leitura CSV), Python puro (regras)
-- Repository: SQLAlchemy ORM
-- Database: SQLite (arquivo local)
+### Etapa 5: Testes Unitários, Integração e Garantia de Qualidade ✅
+- Criação de suíte de testes com `pytest` utilizando banco SQLite em memória (`sqlite:///:memory:`).
+- Cobertura de repositórios, estratégias de importação, serviços e ViewModels.
 
-Estrutura de pastas definida em: docs/estrutura_projeto.md
+### Etapa 6: Documentação Abrangente v2.0 ✅
+- Elaboração de `arquitetura_v2.md`, `design_patterns.md`, `migracoes_alembic.md`.
+- Atualização de `estrutura_projeto.md`, `roadmap.md`, `Visao_Geral.md` e `README.md`.
 
 ---
 
-## Fase 3 — Protótipo (Importação sem BD)
-- Selecionar arquivo CSV
-- Ler com Pandas
-- Exibir dados no terminal/tela simples
-- Validar estrutura do arquivo
+## Evolução Futura (Roadmap v2.1+)
 
----
+### v2.1 — Extensibilidade de Extratos
+- [ ] Implementação de `EstrategiaOFX` (suporte a extratos em formato padrão OFX).
+- [ ] Implementação de `EstrategiaNubank` e `EstrategiaItau`.
 
-## Fase 4 — Persistência
-- Implementar models SQLAlchemy
-- Criar banco SQLite
-- Popular tabelas a partir do CSV
-- Garantir que não haja duplicatas
+### v2.2 — Relatórios e Exportação
+- [ ] Exportação de relatórios financeiros consolidados em PDF e Excel.
+- [ ] Gráficos comparativos entre múltiplos anos.
 
----
-
-## Fase 5 — Classificação
-### 5.1 — Classificação Básica
-- Percorrer palavras-chave cadastradas
-- Buscar correspondência na descrição da movimentação
-- Atribuir categoria correspondente
-- Fallback: "Sem categoria"
-
-### 5.2 — Cadastro de Regras
-- Interface para adicionar palavra-chave
-- Vincular a uma categoria existente
-- Definir tipo (receita/despesa/ambos)
-
-### 5.3 — Aprendizado Interativo (futuro)
-- Sistema pergunta categoria para movimentações não classificadas
-- Salva regra automaticamente
-- Nunca mais pergunta para o mesmo padrão
-
----
-
-## Fase 6 — Estatísticas
-- Cálculo de indicadores (totais, médias, percentuais)
-- Armazenamento em ResumoMensal
-- Identificação de categorias dominantes
-- Comparação mensal
-
----
-
-## Fase 7 — Dashboard
-- Interface com CustomTkinter
-- Tabela de movimentações com filtros
-- Gráficos com Matplotlib (pizza, barras, linha)
-- Dropdown de período (mês/ano)
-- Atualização dinâmica
-
----
-
-## Fase 8 — Refatoração
-- Revisão de código
-- Testes unitários (importação, classificação, cálculos)
-- Documentação de código (docstrings)
-- Tratamento de erros robusto
-
----
-
-## Fase 9 — Versão 1.0
-- Empacotamento com PyInstaller (Windows/Linux)
-- README.md completo
-- Manual de uso
-- Tag v1.0 no GitHub
-
----
-
-## Evolução Futura (v1.1+)
-- OCR para PDF
-- Suporte a outros bancos
-- Classificação por IA/ML
-- Metas e objetivos financeiros
-- Comparação entre meses/anos
-- Previsão de gastos
-- Importação automática via API
-
----
-## Status Atual do Projeto
-
-✅ Fase 1 (Descoberta): 100% concluída
-✅ Fase 2.1 (Modelagem do Domínio): 100% concluída
-✅ Fase 2.2 (Banco de Dados): 100% concluída (documentação pronta)
-✅ Fase 2.3 (Arquitetura): 100% concluída
-✅ Fase 3 (Protótipo): 100% concluída
-✅ Fase 4 (Persistência): 100% concluída
-✅ Fase 5 (Classificação): 100% concluída
-✅ Fase 6 (UI): 100% concluída
-🔄 Fase 7 (Estatísticas): Pendente
-⏳ Fase 8 (Dashboard): Pendente
-⏳ Fase 9 (Refatoração): Pendente
-⏳ Fase 10 (Versão 1.0): Pendente
+### v3.0 — Recursos Avançados
+- [ ] Orçamentos mensais por categoria com alertas de limite.
+- [ ] Leitura automatizada via OCR/PDF.

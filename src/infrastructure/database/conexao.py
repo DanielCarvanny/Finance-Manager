@@ -8,6 +8,8 @@ from infrastructure.database import seed
 from contextlib import contextmanager
 from utils.logger import logger
 from infrastructure.security.security import descriptografar_banco, criptografar_banco
+from alembic.config import Config
+from alembic import command
 
 # ---------------------------------------------------------------------------
 # Caminhos de dados — sempre em %APPDATA%\FinanceManager\ para garantir
@@ -36,6 +38,35 @@ def get_db():
         db.close()
 
 
+def executar_migracoes_alembic():
+    """Executa automaticamente as migrações do Alembic para manter o schema atualizado."""
+    try:
+        caminho_projeto = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        caminho_ini = os.path.join(caminho_projeto, 'alembic.ini')
+        caminho_migrations = os.path.join(caminho_projeto, 'src', 'infrastructure', 'database', 'migrations')
+
+        alembic_cfg = Config(caminho_ini)
+        alembic_cfg.set_main_option('script_location', caminho_migrations)
+
+        # Se a tabela 'movimentacao' já existe (banco v1.0 pré-alembic), carimba a baseline sem tentar recriar tabelas
+        inspetor = inspect(engine)
+        tabelas = inspetor.get_table_names()
+
+        if 'movimentacao' in tabelas and 'alembic_version' not in tabelas:
+            logger.info("Banco de dados existente detectado. Marcando como baseline do Alembic...")
+            command.stamp(alembic_cfg, 'head')
+        elif 'movimentacao' not in tabelas:
+            command.upgrade(alembic_cfg, 'head')
+
+        logger.info("Migrações de banco de dados (Alembic) aplicadas com sucesso.")
+    except Exception as e:
+        logger.error(f"Falha ao executar migrações do Alembic: {e}", exc_info=True)
+        raise
+    finally:
+        # Libera qualquer conexão do Alembic antes que a aplicação abra sessões.
+        engine.dispose()
+
+
 def inicializar_banco_de_dados():
     if os.path.exists(CAMINHO_DB_PLANO):
         logger.warning(
@@ -46,9 +77,9 @@ def inicializar_banco_de_dados():
         # Descriptografa o banco criptografado (se existir) antes de conectar
         descriptografar_banco(CAMINHO_DB_ENC, CAMINHO_DB_PLANO)
 
-    # Inicializa as tabelas
+    # Inicializa as tabelas e roda as migrações do Alembic
     base.Base.metadata.create_all(bind=engine)
-    migrar_colunas_lixeira(engine)
+    executar_migracoes_alembic()
 
     logger.info("Banco de dados SQLite inicializado com sucesso.")
 
@@ -62,56 +93,6 @@ def inicializar_banco_de_dados():
         logger.error(f"Erro ao verificar população inicial do banco: {e}", exc_info=True)
     finally:
         db.close()
-
-
-def migrar_colunas_lixeira(engine_alvo=None) -> None:
-    """Adiciona as colunas de lixeira aos bancos existentes sem recriar tabelas.
-
-    A migração atua somente no banco em texto plano da sessão. A cópia
-    criptografada permanece intacta até um encerramento normal e bem-sucedido.
-    """
-    engine_migracao = engine_alvo or engine
-    inspetor = inspect(engine_migracao)
-
-    if 'movimentacao' not in inspetor.get_table_names():
-        return
-
-    colunas_existentes = {
-        coluna['name'] for coluna in inspetor.get_columns('movimentacao')
-    }
-    comandos = []
-    if 'excluida' not in colunas_existentes:
-        comandos.append(
-            "ALTER TABLE movimentacao "
-            "ADD COLUMN excluida BOOLEAN NOT NULL DEFAULT 0"
-        )
-    if 'excluida_em' not in colunas_existentes:
-        comandos.append(
-            "ALTER TABLE movimentacao ADD COLUMN excluida_em DATETIME"
-        )
-
-    indices_existentes = {indice['name'] for indice in inspetor.get_indexes('movimentacao')}
-    if 'idx_mov_excluida' not in indices_existentes:
-        comandos.append(
-            "CREATE INDEX IF NOT EXISTS idx_mov_excluida "
-            "ON movimentacao (excluida)"
-        )
-
-    if not comandos:
-        return
-
-    try:
-        with engine_migracao.begin() as conexao:
-            for comando in comandos:
-                conexao.execute(text(comando))
-    except Exception:
-        logger.error(
-            "Falha ao migrar as colunas de lixeira. O banco criptografado não foi alterado.",
-            exc_info=True,
-        )
-        raise
-
-    logger.info("Migração da lixeira concluída com sucesso.")
 
 
 def salvar_e_criptografar_banco():

@@ -2,32 +2,22 @@ import customtkinter as ctk
 import matplotlib.pyplot as plt
 import os
 import datetime
-
+from infrastructure.database.conexao import salvar_e_criptografar_banco
 from utils.logger import logger
 from tkinter import filedialog, messagebox
 from ui.components.tabela import TabelaMovimentacoes
 from ui.components.lixeira import JanelaLixeira
-from application.importacao.importacao_service import importar_extrato_completo
-from application.movimentacao_service import (
-    ArquivamentoEstornoError,
-    arquivar_movimentacoes,
-    atualizar_categoria,
-    restaurar_movimentacoes,
-)
-from infrastructure.database.conexao import get_db, salvar_e_criptografar_banco
-from domain.models.movimentacao import Movimentacao
-from sqlalchemy.orm import joinedload
-from domain.models.categoria import Categoria
 from ui.components.filtros import FiltrosDashboard
 from ui.components.cards import PainelResumo
 from ui.components.graficos import GraficoPizza, GraficoBarras, GraficoLinha
-from application.resumo_service import obter_resumo
-from application.analisador_service import percentual_por_categoria, evolucao_mensal, receitas_vs_despesas_mensal
-from sqlalchemy import extract
-from domain.models.categoria import Categoria
+from ui.viewmodels.dashboard_view_model import DashboardViewModel
+from ui.viewmodels.lixeira_view_model import LixeiraViewModel
+from ui.viewmodels.importacao_view_model import ImportacaoViewModel
+from domain.exceptions import ArquivamentoEstornoError
+
 
 # Configurações globais de design
-caminho_tema = os.path.join(os.path.dirname(__file__), "theme.json")
+caminho_tema = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "theme.json"))
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme(caminho_tema)
 
@@ -36,8 +26,13 @@ class App (ctk.CTk):
         super().__init__()
         self.title("Finance Manager — InterFIN Local")
         self.after(10, lambda: self.state('zoomed')) # Abre maximizado
+        
+        # Instancia os ViewModels
+        self.dashboard_viewmodel = DashboardViewModel()
+        self.lixeira_viewmodel = LixeiraViewModel()
+        self.importacao_viewmodel = ImportacaoViewModel()
 
-       # ─────────────────────────────────────────────────
+        # ─────────────────────────────────────────────────
         # ESQUELETO PRINCIPAL: 1 coluna x 2 linhas
         # ─────────────────────────────────────────────────
         self.grid_columnconfigure(0, weight=1)
@@ -46,7 +41,6 @@ class App (ctk.CTk):
 
 
         # ── 1. TOPBAR / CABEÇALHO SUPERIOR (Linha 0) ─────
-        
         self.topbar = ctk.CTkFrame(self, fg_color="#0A2540", height=60, corner_radius=0)
         self.topbar.grid(row=0, column=0, sticky="ew")
         # Esquerda: Logo do App
@@ -84,9 +78,10 @@ class App (ctk.CTk):
             hover_color="#922B21",
         )
 
-        # Direita: Filtros de Período (Mês / Ano)
-        with get_db() as db:
-            self.filtros = FiltrosDashboard(self.topbar, comando_atualizar=self.recalcular_dashboard, session=db)
+        # Carrega o período inicial
+        anos_disponiveis = self.dashboard_viewmodel.listar_anos()
+        self.filtros = FiltrosDashboard(self.topbar, comando_atualizar=self.carregar_e_renderizar_periodo, anos_disponiveis=anos_disponiveis)
+        
         self.filtros.pack(side="right", padx=20, pady=10)
 
         # ── ÁREA DE CONTEÚDO (Coluna 1) ─────────────────
@@ -125,22 +120,32 @@ class App (ctk.CTk):
         self.configurar_scroll_rapido(velocidade=40)
 
         hoje = datetime.date.today()
-        #hoje = datetime.datetime.now()
-        self.recalcular_dashboard(hoje.year, hoje.month)
+        self.carregar_e_renderizar_periodo(hoje.year, hoje.month)
         
         self.protocol("WM_DELETE_WINDOW", self.ao_fechar)
 
-    def atualizar_dashboard_apos_reclassificacao(self):
-        ano = int(self.filtros.combo_ano.get())
-        mes = self.filtros.meses[self.filtros.combo_mes.get()]
-        self.recalcular_dashboard(ano, mes)
-
-    def alterar_categoria(self, movimentacao_id, categoria_id):
-        """Altera uma categoria pela camada de serviço e atualiza o dashboard."""
-        with get_db() as db:
-            if not atualizar_categoria(db, movimentacao_id, categoria_id):
-                raise ValueError("A movimentação não está disponível para reclassificação.")
-        self.atualizar_dashboard_apos_reclassificacao()
+    def alterar_categoria(self, movimentacao_id, nova_categoria_id, ano, mes):
+        """Callback disparado quando o usuário altera a categoria na tabela."""
+        dados = self.dashboard_viewmodel.alterar_categoria_movimentacao(movimentacao_id, nova_categoria_id, ano, mes)
+        self.cards.atualizar_valores(
+            dados["cards"]["total_receitas"],
+            dados["cards"]["total_despesas"],
+            dados["cards"]["saldo_periodo"],
+            dados["cards"]["gasto_medio_diario"]
+        )
+        
+        self.grafico_pizza.atualizar_grafico(dados["graficos"]["pizza"])
+        self.grafico_linha.atualizar_grafico(dados["graficos"]["linha"])
+        self.grafico_barras.atualizar_grafico(
+            dados["graficos"]["barras_receitas"],
+            dados["graficos"]["barras_despesas"],
+        )
+        self.tabela.atualizar_dados(
+            dados["tabela"]["movimentacoes"],
+            dados["tabela"]["categorias"],
+            ano= ano,
+            mes= mes
+        )
 
     def atualizar_botao_arquivamento(self, quantidade):
         """Exibe a ação destrutiva somente quando há linhas selecionadas."""
@@ -164,51 +169,56 @@ class App (ctk.CTk):
         )
         if not confirmou:
             return
-
+        
         try:
-            with get_db() as db:
-                quantidade = arquivar_movimentacoes(db, ids)
-                self.filtros.atualizar_anos(db)
-        except ArquivamentoEstornoError as erro:
-            messagebox.showwarning("Movimentações vinculadas", str(erro))
+            qtd = self.lixeira_viewmodel.arquivar_movimentacoes(ids)
+            if qtd == 0:
+                messagebox.showwarning("Erro", "Não foi possível mover para a lixeira. Verifique se não há estornos vinculados.")
+                return
+        except ArquivamentoEstornoError as e:
+            messagebox.showwarning("Movimentações vinculadas", str(e))
             return
-        except Exception as erro:
-            logger.error("Erro ao mover movimentações para a lixeira.", exc_info=True)
-            messagebox.showerror("Erro", f"Não foi possível mover as movimentações: {erro}")
-            return
-
+            
         self.label_resultado.configure(
-            text=f"🗑 {quantidade} movimentação(ões) movida(s) para a lixeira.",
+            text=f"🗑 {qtd} movimentação(ões) movida(s) para a lixeira.",
             text_color="orange",
         )
-        self.atualizar_dashboard_apos_reclassificacao()
+        ano= int(self.filtros.combo_ano.get())
+        mes= self.filtros.meses[self.filtros.combo_mes.get()]
+        self.carregar_e_renderizar_periodo(ano, mes)
 
     def abrir_lixeira(self):
-        """Abre uma janela com as movimentações disponíveis para restauração."""
-        with get_db() as db:
-            movimentacoes = db.query(Movimentacao).options(
-                joinedload(Movimentacao.categoria)
-            ).filter(
-                Movimentacao.excluida.is_(True)
-            ).order_by(Movimentacao.excluida_em.desc()).all()
+        """Abre a lixeira em primeiro plano sobre a janela principal."""
+        movimentacoes = self.lixeira_viewmodel.listar_movimentacoes_lixeira()
 
-        JanelaLixeira(self, movimentacoes, self.restaurar_da_lixeira)
+        if hasattr(self, "janela_lixeira") and self.janela_lixeira.winfo_exists():
+            self.janela_lixeira.focus_force()
+            return
 
+        self.janela_lixeira = JanelaLixeira(self, movimentacoes, self.restaurar_da_lixeira)
+        self.janela_lixeira.grab_set()
+        self.janela_lixeira.focus_force()
+        
     def restaurar_da_lixeira(self, ids):
         try:
-            with get_db() as db:
-                quantidade = restaurar_movimentacoes(db, ids)
-                self.filtros.atualizar_anos(db)
-        except Exception as erro:
+            quantidade = self.lixeira_viewmodel.restaurar_da_lixeira(ids)
+            
+            if quantidade == 0:
+                messagebox.showerror("Erro", f"Não foi possível restaurar as movimentações. ")
+                return
+        except Exception as e:
             logger.error("Erro ao restaurar movimentações da lixeira.", exc_info=True)
-            messagebox.showerror("Erro", f"Não foi possível restaurar as movimentações: {erro}")
+            messagebox.showerror("Erro", f"Não foi possível restaurar as movimentações: {e}")
             return
 
         self.label_resultado.configure(
             text=f"✅ {quantidade} movimentação(ões) restaurada(s).",
             text_color="green",
         )
-        self.atualizar_dashboard_apos_reclassificacao()
+        ano= int(self.filtros.combo_ano.get())
+        mes= self.filtros.meses[self.filtros.combo_mes.get()]
+        self.carregar_e_renderizar_periodo(ano, mes)
+        
     
     def acao_importar(self):
         """
@@ -226,7 +236,6 @@ class App (ctk.CTk):
         
         logger.info(f"Usuário selecionou o arquivo para importação: {os.path.basename(caminho_arquivo)}")
 
-
         #  Mostra a barra de progresso girando
         self.barra_progresso.pack(pady=10)
         self.barra_progresso.start()
@@ -234,60 +243,26 @@ class App (ctk.CTk):
         self.update() # Força a tela a se desenhar antes da importação "congelar"
 
         # Manda para a nossa regra de negócios 
-        try:
-            with get_db() as db:
-                resultado = importar_extrato_completo(db, caminho_arquivo)
+        resultado = self.importacao_viewmodel.executar_importacao(caminho_arquivo)
+        if resultado["sucesso"]:
+            # Sucesso! Mostra a mensagem e atualiza a tabela
+            self.label_resultado.configure(text=f"✅ {resultado['mensagem']}", text_color="green")
+            
+            novos_anos = self.dashboard_viewmodel.listar_anos()
+            self.filtros.atualizar_anos(novos_anos)
 
-                # Sucesso! Mostra a mensagem e atualiza a tabela
-                self.label_resultado.configure(text=f"✅ {resultado['mensagem']}", text_color="green")
-                
-                ano_selecionado = int(self.filtros.combo_ano.get())
-                mes_selecionado = self.filtros.meses[self.filtros.combo_mes.get()]
-                self.filtros.atualizar_anos(db)
-
-                # Manda o Dashboard recalcular tudo para aquele mês
-                self.recalcular_dashboard(ano_selecionado, mes_selecionado)
-
-        except Exception as e:
+            # Manda o Dashboard recalcular tudo para aquele mês
+            ano= int(self.filtros.combo_ano.get())
+            mes= self.filtros.meses[self.filtros.combo_mes.get()]
+            self.carregar_e_renderizar_periodo(ano, mes)
+        else:
             # Em caso de erro (como um CSV corrompido), mostra na tela
-            logger.error(f"Erro ao importar arquivo CSV na UI: {e}", exc_info=True)
-            self.label_resultado.configure(text=f"❌ Erro: {str(e)}", text_color="red")
-        finally:
-            # Independente de sucesso ou erro, para a barra de progresso
-            self.barra_progresso.stop()
-            self.barra_progresso.pack_forget() # Esconde a barra 
-
-    def recalcular_dashboard(self, ano, mes):
-        """Dispara quando o filtro muda ou uma importação acaba"""
-        with get_db() as db:
-            # Atualiza os Cards
-            resumo = obter_resumo(db, ano, mes)
-
-            if resumo:
-                self.cards.atualizar_valores(resumo.total_receitas, resumo.total_despesas, resumo.saldo_periodo, resumo.gasto_medio_diario)
-
-                # Gráfico de Linha: evolução das despesas no ano selecionado
-                dados_linha = evolucao_mensal(db, ano)
-                self.grafico_linha.atualizar_grafico(dados_linha)
-
-                # Gráfico de Barras: receitas vs despesas
-                rec_mes, desp_mes = receitas_vs_despesas_mensal(db, ano)
-                self.grafico_barras.atualizar_grafico(rec_mes, desp_mes)
-
-                # Atualiza o Gráfico de Pizza
-                dados_pizza = percentual_por_categoria(db, ano, mes)
-                self.grafico_pizza.atualizar_grafico(dados_pizza)
-
-                # Atualiza a Tabela para mostrar só as daquele mês/ano
-                movs_filtradas = db.query(Movimentacao).options(joinedload(Movimentacao.categoria)).filter(
-                    Movimentacao.excluida.is_(False),
-                    extract('year', Movimentacao.data_lancamento) == ano,
-                    extract('month', Movimentacao.data_lancamento) == mes
-                ).all()
-
-                todas_categorias = db.query(Categoria).all()
-                
-                self.tabela.atualizar_dados(movs_filtradas, todas_categorias)
+            logger.error(f"Erro ao importar arquivo CSV na UI. {resultado['mensagem']}", exc_info=True)
+            self.label_resultado.configure(text=f"❌ {resultado['mensagem']}", text_color="red")
+        
+        # Independente de sucesso ou erro, para a barra de progresso
+        self.barra_progresso.stop()
+        self.barra_progresso.pack_forget() # Esconde a barra 
 
     def ao_fechar(self):
         """Executada quando o usuário clica no 'X' da janela"""
@@ -358,8 +333,31 @@ class App (ctk.CTk):
                 widget_tk.bind("<MouseWheel>", on_mousewheel_grafico)
             except:
                 pass
-
-
+            
+    def carregar_e_renderizar_periodo(self, ano, mes):
+        """Pega os dados limpos do ViewModel e aplica nos componentes visuais."""
+        
+        dados = self.dashboard_viewmodel.carregar_periodo(ano, mes)
+        self.cards.atualizar_valores(
+            dados["cards"]["total_receitas"],
+            dados["cards"]["total_despesas"],
+            dados["cards"]["saldo_periodo"],
+            dados["cards"]["gasto_medio_diario"]
+        )
+        
+        self.grafico_pizza.atualizar_grafico(dados["graficos"]["pizza"])
+        self.grafico_linha.atualizar_grafico(dados["graficos"]["linha"])
+        self.grafico_barras.atualizar_grafico(
+            dados["graficos"]["barras_receitas"],
+            dados["graficos"]["barras_despesas"],
+        )
+        self.tabela.atualizar_dados(
+            dados["tabela"]["movimentacoes"],
+            dados["tabela"]["categorias"],
+            ano= ano,
+            mes= mes
+        )
+        
 
 if __name__ == "__main__":
     app = App()

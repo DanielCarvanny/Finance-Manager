@@ -1,7 +1,6 @@
 import customtkinter as ctk
 from utils.logger import logger
-
-
+from typing import Optional
 class TabelaMovimentacoes(ctk.CTkScrollableFrame):
     """Tabela de movimentações com alinhamento perfeito de colunas e seleção visual."""
 
@@ -20,6 +19,8 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
         self.movimentacoes_selecionadas = set()
         self.linhas_por_movimentacao = {}
         self.mapa_categoria = {}
+        self.ano_atual = None
+        self.mes_atual = None
         self.criar_cabecalho()
 
     def criar_cabecalho(self):
@@ -36,8 +37,10 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
         ctk.CTkLabel(self, text="Categoria", font=("Arial", 14, "bold"), anchor="w").grid(row=0, column=3, padx=5, pady=8, sticky="ew")
         ctk.CTkLabel(self, text="Valor", font=("Arial", 14, "bold"), anchor="e").grid(row=0, column=4, padx=(5, 10), pady=8, sticky="ew")
 
-    def atualizar_dados(self, movimentacoes, categorias):
+    def atualizar_dados(self, movimentacoes: list[dict], categorias: list[dict], ano: Optional[int], mes: Optional[int]):
         """Redesenha as linhas do período mantendo o alinhamento unificado."""
+        self.ano_atual = ano
+        self.mes_atual = mes
         for widget in self.winfo_children():
             info = widget.grid_info()
             if info and info["row"] > 0:
@@ -45,7 +48,8 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
 
         self.movimentacoes_selecionadas.clear()
         self.linhas_por_movimentacao.clear()
-        self.mapa_categoria = {cat.nome: cat.id for cat in categorias}
+        
+        self.mapa_categoria = {cat["nome"]: cat["id"] for cat in categorias}
         lista_nomes_categorias = list(self.mapa_categoria.keys())
 
         for index, mov in enumerate(movimentacoes, start=1):
@@ -53,17 +57,22 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
 
         self._notificar_selecao()
 
-    def _criar_linha(self, index, movimentacao, lista_nomes_categorias):
+    def _criar_linha(self, index, movimentacao: dict, lista_nomes_categorias: list[str]):
         """Insere os elementos da linha diretamente no grid da tabela para alinhamento perfeito."""
-        cor_valor = "#32CD32" if movimentacao.valor > 0 else "#FF6347"
-        data_formatada = movimentacao.data_lancamento.strftime("%d/%m/%Y")
-        valor_formatado = f"R$ {abs(movimentacao.valor):.2f}"
+        valor = movimentacao["valor"]
+        cor_valor = "#32CD32" if valor > 0 else "#FF6347"
+        valor_formatado = f"R$ {abs(valor):.2f}"
+        
+        data_obj = movimentacao["data_lancamento"]
+        data_formatada = data_obj.strftime("%d/%m/%Y") if hasattr(data_obj, "strftime") else str(data_obj)
+        
+        id_m = movimentacao["id"]
 
         checkbox = ctk.CTkCheckBox(
             self,
             text="",
             width=24,
-            command=lambda mov_id=movimentacao.id: self.alternar_selecao(mov_id),
+            command=lambda mov_id=id_m: self.alternar_selecao(mov_id),
         )
         checkbox.grid(row=index, column=0, padx=(10, 5), pady=4)
 
@@ -72,7 +81,7 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
 
         lbl_desc = ctk.CTkLabel(
             self,
-            text=movimentacao.descricao,
+            text=movimentacao["descricao"],
             wraplength=380,
             justify="left",
             anchor="w",
@@ -82,15 +91,15 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
         combo_categoria = ctk.CTkComboBox(
             self,
             values=lista_nomes_categorias,
-            command=lambda escolha, mov_id=movimentacao.id: self.ao_mudar_categoria(mov_id, escolha),
+            command=lambda escolha, mov_id=id_m: self.ao_mudar_categoria(mov_id, escolha),
         )
-        combo_categoria.set(movimentacao.categoria.nome)
+        combo_categoria.set(movimentacao["categoria_nome"])
         combo_categoria.grid(row=index, column=3, padx=5, pady=4, sticky="ew")
 
         lbl_valor = ctk.CTkLabel(self, text=valor_formatado, text_color=cor_valor, anchor="e")
         lbl_valor.grid(row=index, column=4, padx=(5, 10), pady=4, sticky="ew")
 
-        self.linhas_por_movimentacao[movimentacao.id] = (checkbox, lbl_data, lbl_desc, combo_categoria, lbl_valor)
+        self.linhas_por_movimentacao[id_m] = (checkbox, lbl_data, lbl_desc, combo_categoria, lbl_valor)
 
     def alternar_selecao(self, movimentacao_id: int):
         """Alterna a seleção e destaca os widgets da linha correspondente."""
@@ -117,7 +126,7 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
         nova_categoria_id = self.mapa_categoria[novo_nome_categoria]
         try:
             if self.ao_categoria_alterada:
-                self.ao_categoria_alterada(mov_id, nova_categoria_id)
+                self.ao_categoria_alterada(mov_id, nova_categoria_id, self.ano_atual, self.mes_atual)
             logger.info(
                 "Usuário solicitou categoria '%s' para a movimentação ID %s.",
                 novo_nome_categoria,

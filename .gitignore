@@ -53,3 +53,5 @@ dist/
 *.swp
 *.swo
 .agents/
+
+tests/relatorio_execucao_testes.md
