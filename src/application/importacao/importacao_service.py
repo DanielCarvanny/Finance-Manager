@@ -86,9 +86,9 @@ class ImportacaoService:
                 # Salva as novas movimentações em lote
                 if novas_mov:
                     uow.movimentacoes.salvar_lote(novas_mov)
-                    
-                # Executa a classificação automática de categorias por palavras-chave
-                classificador.classificar_todas_movimentacoes(uow)
+                    uow.session.flush()  # Garante que as novas movimentações sejam visíveis para a query de classificação
+                    # Executa a classificação automática de categorias por palavras-chave
+                    classificador.classificar_todas_movimentacoes(uow)
                 
                 # Confirma toda a transação bancária (Tudo ou Nada)
                 uow.commit()

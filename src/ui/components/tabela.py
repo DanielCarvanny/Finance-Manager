@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from utils.logger import logger
+from typing import Optional
 class TabelaMovimentacoes(ctk.CTkScrollableFrame):
     """Tabela de movimentações com alinhamento perfeito de colunas e seleção visual."""
 
@@ -18,6 +19,8 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
         self.movimentacoes_selecionadas = set()
         self.linhas_por_movimentacao = {}
         self.mapa_categoria = {}
+        self.ano_atual = None
+        self.mes_atual = None
         self.criar_cabecalho()
 
     def criar_cabecalho(self):
@@ -34,8 +37,10 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
         ctk.CTkLabel(self, text="Categoria", font=("Arial", 14, "bold"), anchor="w").grid(row=0, column=3, padx=5, pady=8, sticky="ew")
         ctk.CTkLabel(self, text="Valor", font=("Arial", 14, "bold"), anchor="e").grid(row=0, column=4, padx=(5, 10), pady=8, sticky="ew")
 
-    def atualizar_dados(self, movimentacoes: list[dict], categorias: list[dict]):
+    def atualizar_dados(self, movimentacoes: list[dict], categorias: list[dict], ano: Optional[int], mes: Optional[int]):
         """Redesenha as linhas do período mantendo o alinhamento unificado."""
+        self.ano_atual = ano
+        self.mes_atual = mes
         for widget in self.winfo_children():
             info = widget.grid_info()
             if info and info["row"] > 0:
@@ -121,7 +126,7 @@ class TabelaMovimentacoes(ctk.CTkScrollableFrame):
         nova_categoria_id = self.mapa_categoria[novo_nome_categoria]
         try:
             if self.ao_categoria_alterada:
-                self.ao_categoria_alterada(mov_id, nova_categoria_id)
+                self.ao_categoria_alterada(mov_id, nova_categoria_id, self.ano_atual, self.mes_atual)
             logger.info(
                 "Usuário solicitou categoria '%s' para a movimentação ID %s.",
                 novo_nome_categoria,

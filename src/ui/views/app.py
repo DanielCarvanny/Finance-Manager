@@ -142,7 +142,9 @@ class App (ctk.CTk):
         )
         self.tabela.atualizar_dados(
             dados["tabela"]["movimentacoes"],
-            dados["tabela"]["categorias"]
+            dados["tabela"]["categorias"],
+            ano= ano,
+            mes= mes
         )
 
     def atualizar_botao_arquivamento(self, quantidade):
@@ -351,7 +353,9 @@ class App (ctk.CTk):
         )
         self.tabela.atualizar_dados(
             dados["tabela"]["movimentacoes"],
-            dados["tabela"]["categorias"]
+            dados["tabela"]["categorias"],
+            ano= ano,
+            mes= mes
         )
         
 
