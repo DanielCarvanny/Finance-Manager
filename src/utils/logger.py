@@ -6,14 +6,17 @@ def configurar_logger():
     Configura o sistema de logs para gravar em arquivo (logs/app.log) 
     e simultaneamente exibir no terminal.
     """
-    # Descobre a raiz do projeto e garante que a pasta 'logs' exista
-    raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-
-    pasta_logs = os.path.join(raiz, 'logs')
-
+    # Salva os logs em %APPDATA%\FinanceManager\logs\ para garantir permissão de escrita
+    pasta_appdata = os.path.join(
+        os.environ.get("APPDATA", os.path.expanduser("~")),
+        "FinanceManager",
+    )
+    
+    pasta_logs = os.path.join(pasta_appdata, "logs")
+    
     os.makedirs(pasta_logs, exist_ok=True)
-
-    caminho_log = os.path.join(pasta_logs, 'app.log')
+    
+    caminho_log = os.path.join(pasta_logs, "app.log")
 
     # Define o formato da mensagem (Data/Hora | Nível | Arquivo:Linha | Mensagem)
     formato = logging.Formatter(
