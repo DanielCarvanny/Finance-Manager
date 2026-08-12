@@ -21,7 +21,7 @@
 
 ---
 
-## 🏗️ Arquitetura do Sistema (v2.0)
+## 🏗️ Arquitetura do Sistema
 
 O projeto adota uma **Arquitetura em 4 Camadas (Clean Architecture)** com o padrão **MVVM** na camada de apresentação:
 
