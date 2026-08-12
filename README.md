@@ -1,4 +1,4 @@
-# 📊 Finance Manager — InterFIN Local (v2.0)
+# 📊 Finance Manager — InterFIN Local
 
 > Gerenciador financeiro pessoal desktop construído em Python com **CustomTkinter**, **SQLAlchemy**, **Alembic** e **Matplotlib**.
 > Importa extratos bancários, categoriza movimentações automaticamente por regras de palavras-chave, gerencia lixeira com proteção de estornos e exibe um dashboard interativo.
